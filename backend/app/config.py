@@ -11,6 +11,14 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://user:password@localhost:5432/tradsy"
     database_sync_url: str = "postgresql://user:password@localhost:5432/tradsy"
 
+    @property
+    def database_url_async(self) -> str:
+        """Ensure async driver (asyncpg) for SQLAlchemy async engine. Railway gives postgresql://."""
+        url = self.database_url
+        if url.startswith("postgresql://") and "asyncpg" not in url:
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
+
     # Auth
     secret_key: str = "change-me-in-production"
     algorithm: str = "HS256"
