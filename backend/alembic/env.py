@@ -14,8 +14,19 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.effective_database_sync_url)
+
+def _get_migration_url() -> str:
+    """Prefer DATABASE_URL from env (Railway injects this when Postgres is linked)."""
+    raw = os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_PUBLIC_URL")
+    if raw:
+        # Alembic needs sync driver; strip asyncpg if present
+        if "+asyncpg" in raw:
+            return raw.replace("postgresql+asyncpg://", "postgresql://", 1)
+        return raw
+    return get_settings().effective_database_sync_url
+
+
+config.set_main_option("sqlalchemy.url", _get_migration_url())
 target_metadata = Base.metadata
 
 
