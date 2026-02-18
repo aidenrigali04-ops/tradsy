@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = "postgresql+asyncpg://user:password@localhost:5432/tradsy"
-    database_sync_url: str = "postgresql://user:password@localhost:5432/tradsy"
+    database_sync_url: str | None = None  # Optional; derived from database_url if unset (Railway sets only DATABASE_URL)
 
     @property
     def database_url_async(self) -> str:
@@ -19,13 +19,27 @@ class Settings(BaseSettings):
             return url.replace("postgresql://", "postgresql+asyncpg://", 1)
         return url
 
+    @property
+    def effective_database_sync_url(self) -> str:
+        """Sync URL for Alembic. Uses DATABASE_SYNC_URL if set, else derives from DATABASE_URL."""
+        if self.database_sync_url:
+            return self.database_sync_url
+        url = self.database_url
+        if "+asyncpg" in url:
+            return url.replace("postgresql+asyncpg://", "postgresql://", 1)
+        return url
+
     # Auth
     secret_key: str = "change-me-in-production"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 
-    # CORS
+    # CORS (comma-separated for multiple origins)
     frontend_origin: str = "http://localhost:5173"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [o.strip() for o in self.frontend_origin.split(",") if o.strip()]
 
     # OAuth / external
     google_client_id: str = ""
