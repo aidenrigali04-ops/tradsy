@@ -68,7 +68,9 @@ export default function CreateAccount() {
       await register(first_name, email, password);
       navigate("/onboarding/1");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      const msg =
+        err instanceof Error ? err.message : typeof err === "string" ? err : "Registration failed";
+      setError(msg);
     }
   }
 

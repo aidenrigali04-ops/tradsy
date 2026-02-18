@@ -19,7 +19,16 @@ export async function api<T>(
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    const msg = Array.isArray(err.detail) ? err.detail.map((d: { msg?: string }) => d.msg).join(", ") : (err.detail || String(err));
+    let msg: string;
+    if (Array.isArray(err.detail)) {
+      msg = err.detail.map((d: { msg?: string }) => d.msg ?? JSON.stringify(d)).join(", ");
+    } else if (typeof err.detail === "string") {
+      msg = err.detail;
+    } else if (err.detail && typeof err.detail === "object") {
+      msg = (err.detail as { msg?: string }).msg ?? JSON.stringify(err.detail);
+    } else {
+      msg = res.statusText || "Request failed";
+    }
     throw new Error(msg);
   }
   return res.json();

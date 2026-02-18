@@ -26,7 +26,8 @@ export default function Login() {
       await login(email, password);
       navigate("/app");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      const msg = err instanceof Error ? err.message : typeof err === "string" ? err : "Login failed";
+      setError(msg);
     }
   }
 
