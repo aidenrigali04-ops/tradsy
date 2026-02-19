@@ -7,9 +7,14 @@ from app.routers import health, auth, users, onboarding, gurus, strategies, char
 settings = get_settings()
 app = FastAPI(title=settings.project_name, debug=settings.debug)
 
+# Always allow production frontend; merge with config so env override doesn't drop it
+_cors_origins = list(settings.cors_origins)
+if "https://tradsy.vercel.app" not in _cors_origins:
+    _cors_origins.append("https://tradsy.vercel.app")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
