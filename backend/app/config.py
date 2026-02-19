@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
 
     # CORS (comma-separated for multiple origins)
-    frontend_origin: str = "http://localhost:5173"
+    frontend_origin: str = "http://localhost:5173,https://tradsy.vercel.app"
 
     @property
     def cors_origins(self) -> list[str]:
