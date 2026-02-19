@@ -64,6 +64,7 @@ export default function OnboardingStep2() {
 
   return (
     <div style={styles.page}>
+      <p style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>Onboarding · Step 2 of 2</p>
       <h1 style={styles.title}>What is your trading strategy?</h1>
       <p style={styles.subtitle}>
         Please provide a detailed description of your trading setup, as accurately as you can, to enable our algorithm to develop an effective execution strategy.

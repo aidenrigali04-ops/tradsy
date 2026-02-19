@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -54,8 +54,13 @@ export default function CreateAccount() {
   const [password, setPassword] = useState("");
   const [agree, setAgree] = useState(false);
   const [error, setError] = useState("");
-  const { register } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const { register, token, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && token) navigate("/app", { replace: true });
+  }, [authLoading, token, navigate]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,13 +69,16 @@ export default function CreateAccount() {
       setError("Please agree to the TOS");
       return;
     }
+    setLoading(true);
     try {
       await register(first_name, email, password);
-      navigate("/onboarding/1");
+      navigate("/onboarding/1", { replace: true });
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : typeof err === "string" ? err : "Registration failed";
       setError(msg);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -115,7 +123,9 @@ export default function CreateAccount() {
             By creating an account you're agreeing to our TOS
           </label>
           {error && <p style={{ color: "#c00", marginBottom: 12, fontSize: 14 }}>{error}</p>}
-          <button type="submit" style={styles.submit}>Create account</button>
+          <button type="submit" style={styles.submit} disabled={loading}>
+            {loading ? "Creating account…" : "Create account"}
+          </button>
         </form>
         <p style={styles.loginLink}>
           Already have an account? <Link to="/login">Log-in</Link>

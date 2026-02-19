@@ -66,6 +66,7 @@ export default function OnboardingStep1() {
 
   return (
     <div style={styles.page}>
+      <p style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>Onboarding · Step 1 of 2</p>
       <h1 style={styles.title}>Almost there</h1>
       <p style={styles.subtitle}>Tell us your risk tolerance and experience so we can personalize your experience.</p>
       <form onSubmit={handleSubmit}>

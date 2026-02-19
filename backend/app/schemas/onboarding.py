@@ -7,6 +7,7 @@ class OnboardingStep1(BaseModel):
     first_name: str
     risk_tolerance: RiskTolerance
     experience_level: ExperienceLevel
+    risk_disclaimer_accepted: bool
 
 
 class OnboardingStep2(BaseModel):
