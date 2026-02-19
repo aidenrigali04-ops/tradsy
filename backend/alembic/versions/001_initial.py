@@ -8,6 +8,7 @@ Create Date: 2025-01-01
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import ENUM
 
 revision: str = "001"
 down_revision: Union[str, None] = None
@@ -29,8 +30,9 @@ def upgrade() -> None:
         END
         $$;
     """))
-    risk_tolerance_enum = sa.Enum("LOW", "MEDIUM", "HIGH", name="risktolerance", create_type=False)
-    experience_level_enum = sa.Enum("BEGINNER", "INTERMEDIATE", "ADVANCED", name="experiencelevel", create_type=False)
+    # Use PostgreSQL ENUM with create_type=False so create_table does not emit CREATE TYPE
+    risk_tolerance_enum = ENUM("LOW", "MEDIUM", "HIGH", name="risktolerance", create_type=False)
+    experience_level_enum = ENUM("BEGINNER", "INTERMEDIATE", "ADVANCED", name="experiencelevel", create_type=False)
 
     op.create_table(
         "users",
