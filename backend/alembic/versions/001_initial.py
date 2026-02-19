@@ -16,10 +16,21 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    risk_tolerance_enum = sa.Enum("LOW", "MEDIUM", "HIGH", name="risktolerance")
-    experience_level_enum = sa.Enum("BEGINNER", "INTERMEDIATE", "ADVANCED", name="experiencelevel")
-    risk_tolerance_enum.create(op.get_bind(), checkfirst=True)
-    experience_level_enum.create(op.get_bind(), checkfirst=True)
+    # Create enums only if they don't exist (idempotent for partial runs / re-deploys)
+    op.execute(sa.text("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'risktolerance') THEN
+                CREATE TYPE risktolerance AS ENUM ('LOW', 'MEDIUM', 'HIGH');
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'experiencelevel') THEN
+                CREATE TYPE experiencelevel AS ENUM ('BEGINNER', 'INTERMEDIATE', 'ADVANCED');
+            END IF;
+        END
+        $$;
+    """))
+    risk_tolerance_enum = sa.Enum("LOW", "MEDIUM", "HIGH", name="risktolerance", create_type=False)
+    experience_level_enum = sa.Enum("BEGINNER", "INTERMEDIATE", "ADVANCED", name="experiencelevel", create_type=False)
 
     op.create_table(
         "users",
