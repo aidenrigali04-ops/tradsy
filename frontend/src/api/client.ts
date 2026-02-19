@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+const API_BASE = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
 
 function getToken(): string | null {
   return localStorage.getItem("tradsy_token");
@@ -16,7 +16,18 @@ export async function api<T>(
   if (token) {
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  } catch (e) {
+    const msg =
+      e instanceof TypeError && e.message === "Failed to fetch"
+        ? "Network error. The server may be unreachable—check your connection or try again later."
+        : e instanceof Error
+          ? e.message
+          : "Network error";
+    throw new Error(msg);
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     let msg: string;

@@ -27,23 +27,33 @@ async def register(
     db: AsyncSession = Depends(get_db),
     _: None = Depends(_rate_limit_register),
 ):
-    result = await db.execute(select(User).where(User.email == data.email))
-    if result.scalar_one_or_none():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
-    user = User(
-        email=data.email,
-        hashed_password=hash_password(data.password),
-        first_name=data.first_name,
-        email_verified=False,
-    )
-    db.add(user)
-    await db.flush()
-    profile = UserProfile(user_id=user.id)
-    db.add(profile)
-    await db.commit()
-    await db.refresh(user)
-    token = create_access_token({"sub": str(user.id), "email": user.email})
-    return Token(access_token=token)
+    try:
+        result = await db.execute(select(User).where(User.email == data.email))
+        if result.scalar_one_or_none():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+        user = User(
+            email=data.email,
+            hashed_password=hash_password(data.password),
+            first_name=data.first_name,
+            email_verified=False,
+        )
+        db.add(user)
+        await db.flush()
+        profile = UserProfile(user_id=user.id)
+        db.add(profile)
+        await db.flush()
+        await db.refresh(user)
+        token = create_access_token({"sub": str(user.id), "email": user.email})
+        return Token(access_token=token)
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
 
 
 @router.post("/login", response_model=Token)
