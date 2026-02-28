@@ -185,6 +185,7 @@ export const chat = {
     const token = getToken();
     const res = await fetch(`${API_BASE}/chat/stream`, {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -206,8 +207,7 @@ export const chat = {
     try {
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
-        buf += dec.decode(value, { stream: true });
+        if (value) buf += dec.decode(value, { stream: true });
         const lines = buf.split("\n");
         buf = lines.pop() ?? "";
         for (const line of lines) {
@@ -219,6 +219,15 @@ export const chat = {
               // skip non-json
             }
           }
+        }
+        if (done) break;
+      }
+      if (buf.trim().startsWith("data: ")) {
+        try {
+          const data = JSON.parse(buf.trim().slice(6)) as { type: string; text?: string; session_id?: string };
+          yield data;
+        } catch {
+          // ignore
         }
       }
     } finally {

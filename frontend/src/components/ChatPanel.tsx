@@ -159,6 +159,16 @@ const styles: Record<string, React.CSSProperties> = {
     marginLeft: 4,
   },
   loading: { padding: 8, fontSize: 14, color: "#666" },
+  loadingBubble: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "14px 18px",
+    background: "#f0f0f0",
+    borderRadius: 12,
+    maxWidth: "fit-content",
+  },
+  loadingDots: { display: "flex", alignItems: "center", gap: 5 },
   error: { padding: 8, fontSize: 14, color: "#c00", background: "#fee", borderRadius: 8, marginTop: 8 },
   empty: { padding: 24, textAlign: "center", color: "#888", fontSize: 15 },
 };
@@ -228,42 +238,22 @@ export default function ChatPanel({
     setLoading(true);
     setStreamingContent("");
 
+    const addAssistantMessage = (content: string) => {
+      setMessages((prev) => [...prev, { role: "assistant", content }]);
+    };
+
     try {
-      try {
-        const gen = chat.streamMessages({
-          message: text,
-          session_id: sessionId,
-          symbol: symbol ?? undefined,
-        });
-        let fullReply = "";
-        for await (const event of gen) {
-          if (event.type === "token" && event.text) {
-            fullReply += event.text;
-            setStreamingContent(fullReply);
-          }
-          if (event.type === "done" && event.session_id) {
-            setSessionId(event.session_id);
-          }
-          if (event.type === "error" || event.type === "refused") {
-            setError(event.text ?? "Something went wrong.");
-            break;
-          }
-        }
-        if (fullReply) {
-          setMessages((prev) => [...prev, { role: "assistant", content: fullReply }]);
-        }
-      } catch {
-        const fallback = await chat.send({
-          message: text,
-          session_id: sessionId,
-          symbol: symbol ?? undefined,
-        });
-        setSessionId(fallback.session_id);
-        setMessages((prev) => [...prev, { role: "assistant", content: fallback.reply }]);
-      }
+      const res = await chat.send({
+        message: text,
+        session_id: sessionId,
+        symbol: symbol ?? undefined,
+      });
+      setSessionId(res.session_id);
+      addAssistantMessage(res.reply);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to send. Try again.");
-      setMessages((prev) => prev.slice(0, -1));
+      const errMsg = e instanceof Error ? e.message : "Failed to send. Try again.";
+      setError(errMsg);
+      addAssistantMessage(`Error: ${errMsg}`);
     } finally {
       setLoading(false);
       setStreamingContent("");
@@ -372,7 +362,20 @@ export default function ChatPanel({
             </div>
           </div>
         )}
-        {loading && !streamingContent && <div style={styles.loading}>Thinking...</div>}
+        {loading && !streamingContent && (
+          <div style={styles.messageRow}>
+            <div>
+              <div style={styles.label}>Tradsy</div>
+              <div style={styles.loadingBubble}>
+                <div style={styles.loadingDots} aria-hidden="true">
+                  <span className="tradsy-typing-dot" />
+                  <span className="tradsy-typing-dot" />
+                  <span className="tradsy-typing-dot" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {error && <div style={styles.error}>{error}</div>}
         <div ref={messagesEndRef} />
       </div>
