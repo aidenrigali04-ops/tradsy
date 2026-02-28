@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { chat, type ChatMessage } from "../api/client";
+import { useChat } from "../context/ChatContext";
+import type { ArchivedChat } from "../types/chatHistory";
 import RiskWarningCard from "./RiskWarningCard";
 import ExecutionProgressCard from "./ExecutionProgressCard";
 
@@ -202,6 +204,8 @@ type Props = {
   /** Full-screen chat (e.g. main Chat page); no border, welcome + example prompts. */
   fullScreen?: boolean;
   userName?: string;
+  /** When opening a chat from history, pass the archived chat to restore messages/session. */
+  initialChat?: ArchivedChat | null;
 };
 
 export default function ChatPanel({
@@ -213,7 +217,9 @@ export default function ChatPanel({
   onTriggerSent,
   fullScreen = false,
   userName,
+  initialChat,
 }: Props) {
+  const { registerGetCurrentChatData, selectChatFromHistory } = useChat();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(() => sessionStorage.getItem(SESSION_KEY));
   const [input, setInput] = useState("");
@@ -234,6 +240,38 @@ export default function ChatPanel({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   /** Only show full 3-step card for trading analysis (Deep Analysis / Strategy); regular chat uses 3-dot only */
   const loadingKindRef = useRef<"chat" | "analysis">("chat");
+
+  const currentChatDataRef = useRef<{ symbol: string; messages: ChatMessage[]; sessionId: string | null }>({
+    symbol: symbol ?? "AAPL",
+    messages: [],
+    sessionId: null,
+  });
+  currentChatDataRef.current = {
+    symbol: symbol ?? "AAPL",
+    messages,
+    sessionId,
+  };
+
+  useEffect(() => {
+    registerGetCurrentChatData(() =>
+      currentChatDataRef.current.messages.length > 0
+        ? {
+            symbol: currentChatDataRef.current.symbol,
+            messages: currentChatDataRef.current.messages,
+            sessionId: currentChatDataRef.current.sessionId,
+          }
+        : null
+    );
+    return () => registerGetCurrentChatData(null);
+  }, [registerGetCurrentChatData]);
+
+  useEffect(() => {
+    if (initialChat?.id) {
+      setMessages(initialChat.messages);
+      setSessionId(initialChat.sessionId ?? null);
+      selectChatFromHistory(null);
+    }
+  }, [initialChat?.id, selectChatFromHistory]);
 
   useEffect(() => {
     if (sessionId) sessionStorage.setItem(SESSION_KEY, sessionId);

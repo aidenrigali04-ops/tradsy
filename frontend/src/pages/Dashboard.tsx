@@ -16,9 +16,10 @@ const styles: Record<string, React.CSSProperties> = {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { newChatKey } = useChat();
+  const { newChatKey, activeChatId, getChatById } = useChat();
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
+  const chatToLoad = activeChatId ? getChatById(activeChatId) : undefined;
 
   useEffect(() => {
     onboarding
@@ -39,11 +40,12 @@ export default function Dashboard() {
       <ChatPanel
         key={newChatKey}
         resetKey={newChatKey}
-        symbol="AAPL"
-        symbolLabel="AAPL"
+        symbol={chatToLoad?.symbol ?? "AAPL"}
+        symbolLabel={chatToLoad?.symbol ?? "AAPL"}
         placeholder="Using my strategy, find a good entry..."
         fullScreen
         userName={user?.first_name ?? undefined}
+        initialChat={chatToLoad ?? null}
       />
     </div>
   );
