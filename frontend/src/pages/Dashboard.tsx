@@ -8,6 +8,17 @@ import ExecuteTradePanel from "../components/ExecuteTradePanel";
 import ChatPanel from "../components/ChatPanel";
 
 const styles: Record<string, React.CSSProperties> = {
+  topRow: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, gap: 16 },
+  newChatBtn: {
+    padding: "10px 18px",
+    background: "#111",
+    color: "#fff",
+    border: "none",
+    borderRadius: 8,
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
   mainTitle: { fontSize: 24, fontWeight: 600, marginBottom: 8 },
   subTitle: { color: "#666", marginBottom: 16, fontSize: 14 },
   grid: {
@@ -24,11 +35,14 @@ const styles: Record<string, React.CSSProperties> = {
   chatWrap: { minHeight: 400 },
 };
 
+const EXECUTE_TRADE_MESSAGE = "I want to execute the current trade. Apply risk management and confirm size and direction for AAPL.";
+
 export default function Dashboard() {
   const { user } = useAuth();
-  const { newChatKey } = useChat();
+  const { newChatKey, requestNewChat } = useChat();
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
+  const [executionTrigger, setExecutionTrigger] = useState("");
 
   useEffect(() => {
     onboarding
@@ -46,7 +60,17 @@ export default function Dashboard() {
 
   return (
     <>
-      <h1 style={styles.mainTitle}>Hi{user?.first_name ? ` ${user.first_name}` : ""}, let&apos;s find a trade</h1>
+      <div style={styles.topRow}>
+        <button
+          type="button"
+          style={styles.newChatBtn}
+          onClick={requestNewChat}
+          aria-label="Start new chat"
+        >
+          New chat
+        </button>
+        <h1 style={{ ...styles.mainTitle, margin: 0, flex: 1 }}>Hi{user?.first_name ? ` ${user.first_name}` : ""}, let&apos;s find a trade</h1>
+      </div>
       <p style={styles.subTitle}>
         Chart, execution, and Tradsy AI chat. Ask for analysis or entries.
       </p>
@@ -56,7 +80,13 @@ export default function Dashboard() {
             <ExecuteTradePanel symbol="AAPL" sellPrice={150} buyPrice={151} />
             <ChartPanel symbol="AAPL" interval="1D" />
           </div>
-          <button type="button" style={styles.executeBtn}>Execute trade</button>
+          <button
+            type="button"
+            style={styles.executeBtn}
+            onClick={() => setExecutionTrigger(EXECUTE_TRADE_MESSAGE)}
+          >
+            Execute trade
+          </button>
           <p style={styles.disclaimer}>Market intelligence, not advice. You&apos;re in control.</p>
         </div>
         <div style={styles.chatWrap}>
@@ -66,6 +96,8 @@ export default function Dashboard() {
             symbol="AAPL"
             symbolLabel="AAPL"
             placeholder="Using my strategy, find a good entry..."
+            triggerMessage={executionTrigger}
+            onTriggerSent={() => setExecutionTrigger("")}
           />
         </div>
       </div>

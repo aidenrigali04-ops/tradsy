@@ -138,6 +138,9 @@ type Props = {
   symbolLabel?: string;
   placeholder?: string;
   resetKey?: number;
+  /** When set, this message is sent through the chat (e.g. execution request); clear after send. */
+  triggerMessage?: string;
+  onTriggerSent?: () => void;
 };
 
 export default function ChatPanel({
@@ -145,6 +148,8 @@ export default function ChatPanel({
   symbolLabel = "AAPL",
   placeholder = "Using my strategy, find a good entry...",
   resetKey = 0,
+  triggerMessage,
+  onTriggerSent,
 }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(() => sessionStorage.getItem(SESSION_KEY));
@@ -254,6 +259,15 @@ export default function ChatPanel({
       handleSend();
     }
   };
+
+  useEffect(() => {
+    const msg = triggerMessage?.trim();
+    if (msg && !loading) {
+      onTriggerSent?.();
+      sendMessage(msg);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when triggerMessage is set by parent
+  }, [triggerMessage]);
 
   return (
     <div style={styles.container}>

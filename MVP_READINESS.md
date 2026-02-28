@@ -60,7 +60,9 @@
 - [x] Strategy config: JSON schema, Steven Dux configs (2 strategies)
 - [x] Backtest: config-driven rule engine, indicators, exits, risk management
 - [x] Chart: TradingView widget + mock datafeed API
-- [x] Layout: sidebar (Last Trade, Strategy Library, Analytics, Settings)
+- [x] Layout: sidebar (Chat, Strategy Library, Analytics, Settings)
+- [x] **Chat**: AI chat with streaming, session persistence, Deep Analysis & Strategy pills; New chat on Dashboard
+- [x] **Execution flow**: Execute trade button sends execution intent into chat; AI confirms risk/size (full broker execution post-MVP)
 - [x] Rate limiting (Redis) and Alpaca config placeholders
 
 ---
