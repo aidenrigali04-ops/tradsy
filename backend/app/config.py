@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -9,7 +10,7 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = "postgresql+asyncpg://user:password@localhost:5432/tradsy"
-    database_sync_url: str | None = None  # Optional; derived from database_url if unset (Railway sets only DATABASE_URL)
+    database_sync_url: Optional[str] = None  # Optional; derived from database_url if unset (Railway sets only DATABASE_URL)
 
     @property
     def database_url_async(self) -> str:
@@ -34,12 +35,14 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 
-    # CORS (comma-separated for multiple origins)
+    # CORS: comma-separated origins. Set CORS_ORIGINS on Railway to include https://tradsy.vercel.app
     frontend_origin: str = "http://localhost:5173,https://tradsy.vercel.app"
+    cors_origins: Optional[str] = None  # Override: e.g. "https://tradsy.vercel.app,http://localhost:5173"
 
     @property
-    def cors_origins(self) -> list[str]:
-        return [o.strip() for o in self.frontend_origin.split(",") if o.strip()]
+    def cors_origins_list(self) -> list[str]:
+        raw = self.cors_origins or self.frontend_origin
+        return [o.strip() for o in raw.split(",") if o.strip()]
 
     # OAuth / external
     google_client_id: str = ""
@@ -57,6 +60,20 @@ class Settings(BaseSettings):
     alpaca_api_key: str = ""
     alpaca_api_secret: str = ""
     alpaca_base_url: str = "https://paper-api.alpaca.markets"  # Use paper for dev
+
+    # Multi-Agent / LLM (System Architecture 2.2, 2.3)
+    openai_api_key: str = ""
+    openai_chat_model: str = "gpt-4o-mini"
+    manus_api_key: str = ""
+    manus_base_url: str = "https://api.manus.dev"
+
+    # Chat loop: system and developer instructions (context assembly)
+    chat_system_instructions: str = (
+        "You are Tradsy, a trading assistant. Help with analysis, ideas, and execution context. "
+        "Be accurate and concise. Do not give personalized financial advice; you provide information and tools."
+    )
+    chat_developer_instructions: str = ""
+    chat_max_context_tokens: int = 12000
 
     class Config:
         env_file = ".env"

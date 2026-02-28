@@ -29,18 +29,24 @@ export async function api<T>(
     throw new Error(msg);
   }
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }));
-    let msg: string;
-    if (Array.isArray(err.detail)) {
-      msg = err.detail.map((d: { msg?: string }) => d.msg ?? JSON.stringify(d)).join(", ");
-    } else if (typeof err.detail === "string") {
-      msg = err.detail;
-    } else if (err.detail && typeof err.detail === "object") {
-      msg = (err.detail as { msg?: string }).msg ?? JSON.stringify(err.detail);
-    } else {
-      msg = res.statusText || "Request failed";
+    const text = await res.text();
+    let err: { detail?: unknown };
+    try {
+      err = text ? JSON.parse(text) : {};
+    } catch {
+      err = { detail: text || res.statusText };
     }
-    throw new Error(msg);
+    if (typeof err.detail === "string") {
+      throw new Error(err.detail);
+    }
+    if (Array.isArray(err.detail)) {
+      const msg = err.detail.map((d: { msg?: string }) => d.msg ?? JSON.stringify(d)).join(", ");
+      throw new Error(msg);
+    }
+    if (err.detail && typeof err.detail === "object" && "msg" in err.detail) {
+      throw new Error((err.detail as { msg?: string }).msg ?? JSON.stringify(err.detail));
+    }
+    throw new Error(res.statusText || "Request failed");
   }
   return res.json();
 }
