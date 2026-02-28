@@ -55,3 +55,21 @@ textarea {
 .tradsy-typing-dot:nth-child(3) {
   animation-delay: 0.3s;
 }
+
+/* Tradsy prism logo: slow endless clockwise rotation, centered */
+@keyframes tradsy-prism-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tradsy-logo-prism {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  animation: tradsy-prism-rotate 10s linear infinite;
+}

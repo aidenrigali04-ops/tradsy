@@ -95,7 +95,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <div style={styles.layout}>
       <aside style={styles.sidebar}>
         <Link to="/app" style={styles.logo}>
-          <span style={{ fontSize: 24 }}>◆</span> Tradsy
+          <span className="tradsy-logo-prism" style={{ fontSize: 24 }} aria-hidden>◆</span> Tradsy
         </Link>
         <button type="button" style={styles.newChatBtn} onClick={handleNewChat} aria-label="New chat">
           New chat
