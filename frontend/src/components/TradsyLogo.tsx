@@ -24,9 +24,9 @@ export default function TradsyLogo({ className, size = 24, style, ariaHidden = t
         xmlns="http://www.w3.org/2000/svg"
         style={{ display: "block" }}
       >
-        {/* Four-pointed star with concave curved sides, solid black */}
+        {/* Four-pointed star: sharp points at T/R/B/L, concave curved sides bowing inward */}
         <path
-          d="M12 3 Q 16 7 21 12 Q 16 17 12 21 Q 8 17 3 12 Q 8 7 12 3 Z"
+          d="M12 1.5 Q 14 8 22.5 12 Q 14 16 12 22.5 Q 10 16 1.5 12 Q 10 8 12 1.5 Z"
           fill="currentColor"
         />
       </svg>
