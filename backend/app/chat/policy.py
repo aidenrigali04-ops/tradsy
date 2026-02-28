@@ -60,7 +60,10 @@ def apply_output_moderation(assistant_text: str) -> tuple[str, bool]:
     """
     if not assistant_text:
         return "", True
-    # Block only obvious refusals / leaked instructions; allow backend messages (e.g. "not configured")
+    # Always pass through backend/API messages so user sees real errors (429, not configured, etc.)
+    if "[LLM error" in assistant_text or "[General LLM" in assistant_text or "429" in assistant_text or "rate limit" in assistant_text.lower():
+        return assistant_text, True
+    # Block only obvious short refusals; allow normal replies
     block_phrases = ["I cannot", "I can't assist", "I'm unable to assist"]
     for phrase in block_phrases:
         if phrase in assistant_text and len(assistant_text.strip()) < 200:

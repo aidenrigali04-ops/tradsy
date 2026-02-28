@@ -46,6 +46,8 @@ class GeneralChatLLM(BaseLLMClient):
                     timeout=60.0,
                 )
                 if r.status_code != 200:
+                    if r.status_code == 429:
+                        return "Rate limit exceeded. Please wait a moment and try again."
                     return f"[LLM error: {r.status_code}]"
                 data = r.json()
                 choice = data.get("choices", [{}])[0]
@@ -75,6 +77,8 @@ class GeneralChatLLM(BaseLLMClient):
                     timeout=60.0,
                 )
                 if r.status_code != 200:
+                    if r.status_code == 429:
+                        return "Rate limit exceeded. Please wait a moment and try again."
                     return f"[LLM error: {r.status_code}]"
                 data = r.json()
                 choice = data.get("choices", [{}])[0]
@@ -105,7 +109,10 @@ class GeneralChatLLM(BaseLLMClient):
                     timeout=60.0,
                 ) as response:
                     if response.status_code != 200:
-                        yield f"[LLM error: {response.status_code}]"
+                        if response.status_code == 429:
+                            yield "Rate limit exceeded. Please wait a moment and try again."
+                        else:
+                            yield f"[LLM error: {response.status_code}]"
                         return
                     async for line in response.aiter_lines():
                         if line.startswith("data: "):
