@@ -14,6 +14,36 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid #eee",
     overflow: "hidden",
   },
+  containerFullScreen: {
+    display: "flex",
+    flexDirection: "column",
+    flex: 1,
+    minHeight: 0,
+    background: "#fff",
+    overflow: "hidden",
+  },
+  welcomeCenter: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    gap: 32,
+  },
+  welcomeTitle: { fontSize: 28, fontWeight: 600, color: "#111", textAlign: "center" },
+  welcomeSub: { fontSize: 15, color: "#666", textAlign: "center", maxWidth: 480 },
+  examplePrompts: { display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 520 },
+  examplePrompt: {
+    padding: "14px 18px",
+    background: "#f5f5f5",
+    border: "1px solid #eee",
+    borderRadius: 12,
+    fontSize: 14,
+    color: "#333",
+    textAlign: "left",
+    cursor: "pointer",
+  },
   messages: {
     flex: 1,
     overflowY: "auto",
@@ -133,6 +163,13 @@ const styles: Record<string, React.CSSProperties> = {
   empty: { padding: 24, textAlign: "center", color: "#888", fontSize: 15 },
 };
 
+const EXAMPLE_PROMPTS = [
+  "Using my strategy, find a good entry for AAPL.",
+  "What's the current risk/reward on this setup?",
+  "Summarize key levels and suggest a stop loss.",
+  "I want to execute the current trade—confirm size and risk.",
+];
+
 type Props = {
   symbol?: string | null;
   symbolLabel?: string;
@@ -141,6 +178,9 @@ type Props = {
   /** When set, this message is sent through the chat (e.g. execution request); clear after send. */
   triggerMessage?: string;
   onTriggerSent?: () => void;
+  /** Full-screen chat (e.g. main Chat page); no border, welcome + example prompts. */
+  fullScreen?: boolean;
+  userName?: string;
 };
 
 export default function ChatPanel({
@@ -150,6 +190,8 @@ export default function ChatPanel({
   resetKey = 0,
   triggerMessage,
   onTriggerSent,
+  fullScreen = false,
+  userName,
 }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(() => sessionStorage.getItem(SESSION_KEY));
@@ -269,10 +311,34 @@ export default function ChatPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when triggerMessage is set by parent
   }, [triggerMessage]);
 
+  const containerStyle = fullScreen ? styles.containerFullScreen : styles.container;
+
   return (
-    <div style={styles.container}>
+    <div style={containerStyle}>
       <div style={styles.messages}>
-        {messages.length === 0 && !loading && (
+        {messages.length === 0 && !loading && fullScreen && (
+          <div style={styles.welcomeCenter}>
+            <h2 style={styles.welcomeTitle}>
+              Hi{userName ? ` ${userName}` : ""}, what do you want to trade?
+            </h2>
+            <p style={styles.welcomeSub}>
+              Ask Tradsy for analysis, entries, or strategy. Get ideas and execution context—ChatGPT for traders.
+            </p>
+            <div style={styles.examplePrompts}>
+              {EXAMPLE_PROMPTS.map((prompt, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  style={styles.examplePrompt}
+                  onClick={() => sendMessage(prompt)}
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {messages.length === 0 && !loading && !fullScreen && (
           <div style={styles.empty}>
             Ask Tradsy anything—analysis, entries, or strategy. Example: &ldquo;{placeholder}&rdquo;
           </div>

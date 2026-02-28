@@ -64,7 +64,7 @@ async def chat(
     )
 
 
-@router.post("/chat/stream")
+@router.post("/stream")
 async def chat_stream(
     body: ChatRequest,
     user: User = Depends(get_current_user),
