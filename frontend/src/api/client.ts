@@ -145,3 +145,77 @@ export const gurus = {
       `/gurus/similar?guru_id=${guruId}`
     ),
 };
+
+/** Chat with AI: session_id for continuity; symbol for symbol-specific context. */
+export type ChatMessage = { role: "user" | "assistant"; content: string };
+
+export const chat = {
+  /** Non-streaming: single request/response. */
+  send: (params: {
+    message: string;
+    session_id?: string | null;
+    symbol?: string | null;
+  }) =>
+    api<{ reply: string; session_id: string; intent_task?: string; usage_tokens?: number }>(
+      "/chat/chat",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          message: params.message,
+          session_id: params.session_id ?? undefined,
+          symbol: params.symbol ?? undefined,
+          stream: false,
+        }),
+      }
+    ),
+
+  /** Stream tokens via SSE; yields { type, text?, session_id? }. */
+  async *streamMessages(params: {
+    message: string;
+    session_id?: string | null;
+    symbol?: string | null;
+  }): AsyncGenerator<{ type: string; text?: string; session_id?: string }> {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/chat/stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        message: params.message,
+        session_id: params.session_id ?? undefined,
+        symbol: params.symbol ?? undefined,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as { detail?: string }).detail ?? res.statusText);
+    }
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error("No response body");
+    const dec = new TextDecoder();
+    let buf = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6)) as { type: string; text?: string; session_id?: string };
+              yield data;
+            } catch {
+              // skip non-json
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  },
+};

@@ -1,20 +1,32 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useChat } from "../context/ChatContext";
 import { onboarding } from "../api/client";
 import ChartPanel from "../components/ChartPanel";
 import ExecuteTradePanel from "../components/ExecuteTradePanel";
+import ChatPanel from "../components/ChatPanel";
 
 const styles: Record<string, React.CSSProperties> = {
-  chartWrap: { flex: 1, position: "relative", minHeight: 400, border: "1px solid #eee", borderRadius: 8, overflow: "hidden", background: "#fff" },
-  mainTitle: { fontSize: 24, fontWeight: 600, marginBottom: 16 },
-  mainPlaceholder: { color: "#666", marginBottom: 16 },
-  executeBtn: { marginTop: 12, padding: "12px 24px", background: "#111", color: "#fff", border: "none", borderRadius: 8, fontWeight: 600 },
-  disclaimer: { marginTop: 8, fontSize: 12, color: "#666" },
+  mainTitle: { fontSize: 24, fontWeight: 600, marginBottom: 8 },
+  subTitle: { color: "#666", marginBottom: 16, fontSize: 14 },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) 380px",
+    gap: 24,
+    flex: 1,
+    minHeight: 0,
+  },
+  left: { display: "flex", flexDirection: "column", gap: 16, minHeight: 0 },
+  chartWrap: { flex: 1, position: "relative", minHeight: 360, border: "1px solid #eee", borderRadius: 8, overflow: "hidden", background: "#fff" },
+  executeBtn: { alignSelf: "start", padding: "12px 24px", background: "#111", color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer" },
+  disclaimer: { marginTop: 4, fontSize: 12, color: "#666" },
+  chatWrap: { minHeight: 400 },
 };
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { newChatKey } = useChat();
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
 
@@ -34,16 +46,28 @@ export default function Dashboard() {
 
   return (
     <>
-        <h1 style={styles.mainTitle}>Hi{user?.first_name ? ` ${user.first_name}` : ""}, let's find a trade</h1>
-        <p style={styles.mainPlaceholder}>
-          Strategy performance and live signals will appear here.
-        </p>
-        <div style={styles.chartWrap}>
-          <ExecuteTradePanel symbol="AAPL" sellPrice={150} buyPrice={151} />
-          <ChartPanel symbol="AAPL" interval="1D" />
+      <h1 style={styles.mainTitle}>Hi{user?.first_name ? ` ${user.first_name}` : ""}, let&apos;s find a trade</h1>
+      <p style={styles.subTitle}>
+        Chart, execution, and Tradsy AI chat. Ask for analysis or entries.
+      </p>
+      <div style={styles.grid}>
+        <div style={styles.left}>
+          <div style={styles.chartWrap}>
+            <ExecuteTradePanel symbol="AAPL" sellPrice={150} buyPrice={151} />
+            <ChartPanel symbol="AAPL" interval="1D" />
+          </div>
+          <button type="button" style={styles.executeBtn}>Execute trade</button>
+          <p style={styles.disclaimer}>Market intelligence, not advice. You&apos;re in control.</p>
         </div>
-        <button type="button" style={styles.executeBtn}>Execute trade</button>
-        <p style={styles.disclaimer}>Market intelligence, not advice. You're in control.</p>
+        <div style={styles.chatWrap}>
+          <ChatPanel
+            key={newChatKey}
+            resetKey={newChatKey}
+            symbol="AAPL"
+            placeholder="Using my strategy, find a good entry..."
+          />
+        </div>
+      </div>
     </>
   );
 }

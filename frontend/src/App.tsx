@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, Link } from "react-router-dom";
 import { auth } from "./api/client";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ChatProvider } from "./context/ChatContext";
 import CreateAccount from "./pages/CreateAccount";
 import Login from "./pages/Login";
 import OnboardingStep1 from "./pages/OnboardingStep1";
@@ -133,7 +134,9 @@ function LandingOrApp() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <ChatProvider>
+        <AppRoutes />
+      </ChatProvider>
     </AuthProvider>
   );
 }

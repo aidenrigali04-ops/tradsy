@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useChat } from "../context/ChatContext";
 
 const styles: Record<string, React.CSSProperties> = {
   layout: { display: "flex", minHeight: "100vh" },
@@ -22,6 +23,7 @@ const styles: Record<string, React.CSSProperties> = {
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const { requestNewChat } = useChat();
 
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
 
@@ -32,7 +34,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <span style={{ fontSize: 24 }}>◆</span> Tradsy
         </Link>
         <div style={styles.nav}>
-          <button type="button" style={styles.navItem}>New chat</button>
+          <button type="button" style={styles.navItem} onClick={requestNewChat}>
+            New chat
+          </button>
           <button type="button" style={styles.navItem}>Search chat</button>
         </div>
         <div style={styles.section}>Chat history</div>
