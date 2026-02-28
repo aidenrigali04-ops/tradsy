@@ -55,6 +55,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   messages: {
     flex: 1,
+    minHeight: 0,
     overflowY: "auto",
     padding: 16,
     display: "flex",
@@ -74,6 +75,7 @@ const styles: Record<string, React.CSSProperties> = {
   bubbleUser: { background: "#111", color: "#fff" },
   label: { fontSize: 11, color: "#888", marginBottom: 4, fontWeight: 600 },
   inputSection: {
+    flexShrink: 0,
     padding: 16,
     borderTop: "1px solid #eee",
     background: "#fafafa",

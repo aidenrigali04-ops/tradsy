@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useChat } from "../context/ChatContext";
 
 const styles: Record<string, React.CSSProperties> = {
-  layout: { display: "flex", flexDirection: "row", minHeight: "100vh" },
+  layout: { display: "flex", flexDirection: "row", height: "100vh", overflow: "hidden" },
   sidebar: {
     width: 260,
     minWidth: 260,
@@ -30,7 +30,7 @@ const styles: Record<string, React.CSSProperties> = {
   nav: { display: "flex", flexDirection: "column", gap: 4 },
   navLink: { padding: "10px 12px", borderRadius: 8, textAlign: "left", textDecoration: "none", color: "inherit", display: "block" },
   navItemActive: { background: "#eee", fontWeight: 500 },
-  main: { flex: 1, padding: 24, background: "#fafafa", display: "flex", flexDirection: "column", minHeight: 0, overflow: "auto" },
+  main: { flex: 1, padding: 24, background: "#fafafa", display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" },
   footer: { marginTop: "auto", fontSize: 12, color: "#999" },
 };
 
