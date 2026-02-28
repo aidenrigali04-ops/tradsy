@@ -3,13 +3,23 @@ Chat and analysis API: ChatGPT-like UI backend.
 Full chat logic loop: input → context assembly → intent → policy → generate → moderate → stream.
 """
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
 from app.config import get_settings
 from app.models.user import User
 from app.dependencies import get_current_user
-from app.schemas.chat import ChatRequest, ChatResponse, DeepAnalysisRequest, WorkflowStatusResponse
+from app.schemas.chat import (
+    ChatRequest,
+    ChatResponse,
+    DeepAnalysisRequest,
+    WorkflowStatusResponse,
+    RiskAssessmentResponse,
+    ExecutionStepSchema,
+    ExecutionStartRequest,
+    ExecutionStartResponse,
+    ExecutionStatusResponse,
+)
 from app.services.input_parsing import parse_command
 from app.llm.symbol import SymbolChatLLM
 from app.agents.usage import UsageTier, check_usage_limits
@@ -21,6 +31,14 @@ router = APIRouter()
 
 # In-memory workflow store; use Redis/DB in production
 _workflows: dict[str, ExecutionWorkflow] = {}
+
+# Risk-managed execution: 3-step progress (Analyzing market data → Chart analysis → Applying on TradingView)
+_executions: dict[str, dict] = {}
+_EXECUTION_STEPS = [
+    {"id": "analyze", "label": "Analyzing market data"},
+    {"id": "chart", "label": "Chart analysis completed"},
+    {"id": "tradingview", "label": "Applying execution on Trading View"},
+]
 
 
 @router.get("/openai-status")
@@ -211,4 +229,67 @@ async def workflow_status(
         phase_status=s["phase_status"],
         current_phase=s["current_phase"],
         result=s["result"],
+    )
+
+
+# ---- Risk assessment & risk-managed execution (overtrading warning + 3-step progress) ----
+
+@router.get("/risk-assessment", response_model=RiskAssessmentResponse)
+async def risk_assessment(
+    symbol: str = "AAPL",
+    user: User = Depends(get_current_user),
+):
+    """
+    Returns overtrading risk for the symbol: probability of loss, balance, and recommendation.
+    Used to show the risk warning UI and "Apply risk-management" flow.
+    """
+    from app.services.risk_assessment import get_risk_assessment
+    return get_risk_assessment(symbol=symbol, user_id=user.id)
+
+
+@router.post("/execution/start", response_model=ExecutionStartResponse)
+async def execution_start(
+    body: Optional[ExecutionStartRequest] = Body(None),
+    user: User = Depends(get_current_user),
+):
+    """
+    Start a risk-managed execution flow. Returns execution_id and 3 steps (pending).
+    Backend advances steps: Analyzing market data → Chart analysis completed → Applying execution on Trading View.
+    """
+    import uuid
+    import asyncio
+    symbol = (body.symbol if body else None) or "AAPL"
+    execution_id = str(uuid.uuid4())
+    steps = [{"id": s["id"], "label": s["label"], "status": "pending"} for s in _EXECUTION_STEPS]
+    _executions[execution_id] = {"symbol": symbol, "steps": steps, "current_index": 0}
+
+    async def _advance_steps():
+        for i in range(len(_EXECUTION_STEPS)):
+            await asyncio.sleep(2.0 if i == 0 else 2.5)
+            if execution_id not in _executions:
+                return
+            ex = _executions[execution_id]
+            ex["steps"][i]["status"] = "completed"
+            ex["current_index"] = i + 1
+
+    asyncio.create_task(_advance_steps())
+    return ExecutionStartResponse(execution_id=execution_id, symbol=symbol, steps=[ExecutionStepSchema(**s) for s in steps])
+
+
+@router.get("/execution/{execution_id}", response_model=ExecutionStatusResponse)
+async def execution_status(
+    execution_id: str,
+    user: User = Depends(get_current_user),
+):
+    """Poll execution progress: 3 steps (analyze → chart → tradingview)."""
+    if execution_id not in _executions:
+        raise HTTPException(status_code=404, detail="Execution not found")
+    ex = _executions[execution_id]
+    steps = [ExecutionStepSchema(**s) for s in ex["steps"]]
+    all_completed = all(s.status == "completed" for s in steps)
+    return ExecutionStatusResponse(
+        execution_id=execution_id,
+        symbol=ex["symbol"],
+        steps=steps,
+        all_completed=all_completed,
     )

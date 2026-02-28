@@ -33,3 +33,35 @@ class WorkflowStatusResponse(BaseModel):
     phase_status: dict[str, str]
     current_phase: Optional[str]
     result: dict
+
+
+class RiskAssessmentResponse(BaseModel):
+    """Overtrading / risk warning for UI (probability of loss, balance, recommendation)."""
+    symbol: str
+    probability_loss_pct: float
+    balance: float
+    message: str
+    show_apply: bool = True
+
+
+class ExecutionStepSchema(BaseModel):
+    id: str
+    label: str
+    status: str  # "pending" | "running" | "completed"
+
+
+class ExecutionStartRequest(BaseModel):
+    symbol: str = "AAPL"
+
+
+class ExecutionStartResponse(BaseModel):
+    execution_id: str
+    symbol: str
+    steps: list[ExecutionStepSchema]
+
+
+class ExecutionStatusResponse(BaseModel):
+    execution_id: str
+    symbol: str
+    steps: list[ExecutionStepSchema]
+    all_completed: bool

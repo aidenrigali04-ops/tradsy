@@ -176,6 +176,25 @@ export const chat = {
       body: JSON.stringify({ symbol: params.symbol, timeframe: params.timeframe ?? "1D" }),
     }),
 
+  /** Overtrading risk warning: probability of loss, balance, recommendation. */
+  riskAssessment: (params: { symbol?: string }) =>
+    api<{ symbol: string; probability_loss_pct: number; balance: number; message: string; show_apply: boolean }>(
+      `/chat/risk-assessment?symbol=${encodeURIComponent(params.symbol ?? "AAPL")}`
+    ),
+
+  /** Start risk-managed execution; returns execution_id and 3 steps. Backend advances steps over time. */
+  executionStart: (params: { symbol?: string }) =>
+    api<{ execution_id: string; symbol: string; steps: { id: string; label: string; status: string }[] }>(
+      "/chat/execution/start",
+      { method: "POST", body: JSON.stringify({ symbol: params.symbol ?? "AAPL" }) }
+    ),
+
+  /** Poll execution progress (3 steps). */
+  executionStatus: (executionId: string) =>
+    api<{ execution_id: string; symbol: string; steps: { id: string; label: string; status: string }[]; all_completed: boolean }>(
+      `/chat/execution/${encodeURIComponent(executionId)}`
+    ),
+
   /** Stream tokens via SSE; yields { type, text?, session_id? }. */
   async *streamMessages(params: {
     message: string;

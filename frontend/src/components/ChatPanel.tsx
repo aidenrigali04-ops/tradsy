@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { chat, type ChatMessage } from "../api/client";
+import RiskWarningCard from "./RiskWarningCard";
+import ExecutionProgressCard from "./ExecutionProgressCard";
 
 const SESSION_KEY = "tradsy_chat_session_id";
 
@@ -210,6 +212,14 @@ export default function ChatPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [streamingContent, setStreamingContent] = useState("");
+  const [riskCard, setRiskCard] = useState<{ symbol: string; probability_loss_pct: number; balance: number; message: string } | null>(null);
+  const [executionState, setExecutionState] = useState<{
+    executionId: string;
+    symbol: string;
+    steps: { id: string; label: string; status: string }[];
+    allCompleted: boolean;
+  } | null>(null);
+  const executionPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -224,12 +234,64 @@ export default function ChatPanel({
       setMessages([]);
       setError(null);
       setStreamingContent("");
+      setRiskCard(null);
+      setExecutionState(null);
+      if (executionPollRef.current) {
+        clearInterval(executionPollRef.current);
+        executionPollRef.current = null;
+      }
     }
   }, [resetKey]);
 
+  const handleRiskCheck = () => {
+    const sym = symbol ?? "AAPL";
+    setError(null);
+    chat.riskAssessment({ symbol: sym })
+      .then((r) => setRiskCard({ symbol: r.symbol, probability_loss_pct: r.probability_loss_pct, balance: r.balance, message: r.message }))
+      .catch((e) => setError(e instanceof Error ? e.message : "Risk check failed"));
+  };
+
+  const handleApplyRiskManagement = () => {
+    const sym = symbol ?? "AAPL";
+    setError(null);
+    setRiskCard(null);
+    chat.executionStart({ symbol: sym })
+      .then((r) => {
+        setExecutionState({
+          executionId: r.execution_id,
+          symbol: r.symbol,
+          steps: r.steps,
+          allCompleted: false,
+        });
+        executionPollRef.current = setInterval(() => {
+          chat.executionStatus(r.execution_id).then((status) => {
+            setExecutionState({
+              executionId: status.execution_id,
+              symbol: status.symbol,
+              steps: status.steps,
+              allCompleted: status.all_completed,
+            });
+            if (status.all_completed && executionPollRef.current) {
+              clearInterval(executionPollRef.current);
+              executionPollRef.current = null;
+            }
+          }).catch(() => {});
+        }, 1500);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Execution start failed"));
+  };
+
+  useEffect(() => {
+    return () => {
+      if (executionPollRef.current) {
+        clearInterval(executionPollRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingContent]);
+  }, [messages, streamingContent, riskCard, executionState]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || loading) return;
@@ -377,6 +439,27 @@ export default function ChatPanel({
             </div>
           </div>
         )}
+        {riskCard && (
+          <div style={styles.messageRow}>
+            <RiskWarningCard
+              symbol={riskCard.symbol}
+              probabilityLossPct={riskCard.probability_loss_pct}
+              balance={riskCard.balance}
+              message={riskCard.message}
+              onApplyRiskManagement={handleApplyRiskManagement}
+            />
+          </div>
+        )}
+        {executionState && (
+          <div style={styles.messageRow}>
+            <ExecutionProgressCard
+              symbol={executionState.symbol}
+              steps={executionState.steps}
+              allCompleted={executionState.allCompleted}
+              showLoadingDots={!executionState.allCompleted}
+            />
+          </div>
+        )}
         {loading && !streamingContent && (
           <div style={styles.messageRow}>
             <div>
@@ -439,6 +522,14 @@ export default function ChatPanel({
             disabled={loading}
           >
             Strategy
+          </button>
+          <button
+            type="button"
+            style={{ ...styles.pill, ...(loading ? styles.pillDisabled : {}) }}
+            onClick={handleRiskCheck}
+            disabled={loading}
+          >
+            Risk check
           </button>
           <button type="button" style={styles.iconBtn} title="TradingView">
             TV
