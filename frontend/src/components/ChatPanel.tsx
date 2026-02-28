@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { chat, type ChatMessage } from "../api/client";
 
 const SESSION_KEY = "tradsy_chat_session_id";
@@ -346,7 +347,21 @@ export default function ChatPanel({
                   ...(m.role === "user" ? styles.bubbleUser : styles.bubbleAssistant),
                 }}
               >
-                {m.content}
+                {m.role === "assistant" ? (
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p style={{ margin: "0 0 8px 0" }}>{children}</p>,
+                      strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
+                      ul: ({ children }) => <ul style={{ margin: "4px 0", paddingLeft: 20 }}>{children}</ul>,
+                      ol: ({ children }) => <ol style={{ margin: "4px 0", paddingLeft: 20 }}>{children}</ol>,
+                      li: ({ children }) => <li style={{ marginBottom: 2 }}>{children}</li>,
+                    }}
+                  >
+                    {m.content}
+                  </ReactMarkdown>
+                ) : (
+                  m.content
+                )}
               </div>
             </div>
           </div>

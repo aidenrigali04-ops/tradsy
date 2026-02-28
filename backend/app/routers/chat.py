@@ -23,6 +23,49 @@ router = APIRouter()
 _workflows: dict[str, ExecutionWorkflow] = {}
 
 
+@router.get("/openai-status")
+async def openai_status(user: User = Depends(get_current_user)):
+    """
+    Check if OpenAI is configured and optionally run one minimal API call.
+    Returns usage so you can verify the dashboard shows non-zero after a chat.
+    """
+    from app.llm.general import GeneralChatLLM
+    settings = get_settings()
+    configured = bool(settings.openai_api_key and settings.openai_api_key.strip())
+    if not configured:
+        return {
+            "configured": False,
+            "message": "OPENAI_API_KEY is not set in backend environment.",
+            "usage": None,
+        }
+    try:
+        llm = GeneralChatLLM()
+        client = llm._client()
+        response = await client.chat.completions.create(
+            model=llm.model,
+            messages=[{"role": "user", "content": "Say OK in one word."}],
+            max_tokens=5,
+        )
+        usage = response.usage
+        return {
+            "configured": True,
+            "test_ok": True,
+            "message": "OpenAI API call succeeded. Usage will appear on platform.openai.com/usage for this key.",
+            "usage": {
+                "prompt_tokens": getattr(usage, "prompt_tokens", 0) or 0,
+                "completion_tokens": getattr(usage, "completion_tokens", 0) or 0,
+                "total_tokens": getattr(usage, "total_tokens", 0) or 0,
+            },
+        }
+    except Exception as e:
+        return {
+            "configured": True,
+            "test_ok": False,
+            "message": str(e),
+            "usage": None,
+        }
+
+
 def _get_chat_loop() -> ChatLoop:
     s = get_settings()
     return ChatLoop(
@@ -101,17 +144,31 @@ async def chat_stream(
     )
 
 
+DEEP_ANALYSIS_SYSTEM = """You are a professional equity analyst. Write in a clean, direct style like ChatGPT.
+- Use ONLY the market data provided in the user message. Do not invent or guess numbers.
+- Do not use placeholders like [Insert...] or [Determine...]. Use the actual figures given.
+- Format in clear markdown: short sections with **bold** headers, bullet points, and concrete numbers.
+- Keep the analysis concise (2–4 short paragraphs plus key levels). Focus on: price context, key levels, risk, and a single actionable takeaway.
+- Do not repeat long boilerplate or generic templates. Be specific to the symbol and data provided."""
+
+
 @router.post("/deep-analysis")
 async def deep_analysis(
     body: DeepAnalysisRequest,
     user: User = Depends(get_current_user),
 ):
-    """Deep Analysis integration: symbol + timeframe."""
+    """Deep Analysis: inject real market context and request a professional, clean response."""
+    from app.services.market_context import get_market_context
+
+    market_context = get_market_context(body.symbol, body.timeframe or "1D")
     llm = SymbolChatLLM(symbol=body.symbol, market_type="stock")
-    system = build_master_prompt(persona="400 IQ Trader")
-    prompt = f"Deep analysis for {body.symbol} over {body.timeframe}. Provide structured analysis."
-    reply = await llm.complete(prompt, system_prompt=system, max_tokens=2048)
-    return {"symbol": body.symbol, "timeframe": body.timeframe, "analysis": reply}
+    prompt = f"""Use the following market data to write a short, professional deep analysis for {body.symbol} ({body.timeframe or '1D'}).
+
+{market_context}
+
+Write a clean analysis: 1) Current price context and key levels, 2) Brief technical take (support/resistance from the data), 3) Risk and one concrete takeaway. Use only the numbers above. No placeholders."""
+    reply = await llm.complete(prompt, system_prompt=DEEP_ANALYSIS_SYSTEM, max_tokens=1024)
+    return {"symbol": body.symbol, "timeframe": body.timeframe or "1D", "analysis": reply}
 
 
 @router.post("/workflow/start")
