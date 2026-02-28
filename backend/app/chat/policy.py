@@ -60,9 +60,9 @@ def apply_output_moderation(assistant_text: str) -> tuple[str, bool]:
     """
     if not assistant_text:
         return "", True
-    # Placeholder: block if model leaked system prompt or obvious refusal
-    block_phrases = ["[General LLM not configured", "[LLM error:", "I cannot", "I can't assist"]
+    # Block only obvious refusals / leaked instructions; allow backend messages (e.g. "not configured")
+    block_phrases = ["I cannot", "I can't assist", "I'm unable to assist"]
     for phrase in block_phrases:
-        if phrase in assistant_text:
+        if phrase in assistant_text and len(assistant_text.strip()) < 200:
             return "[Response filtered.]", False
     return assistant_text, True
