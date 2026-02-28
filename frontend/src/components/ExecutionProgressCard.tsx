@@ -42,6 +42,8 @@ type Props = {
   steps: Step[];
   allCompleted?: boolean;
   showLoadingDots?: boolean;
+  /** Override subheader (e.g. "Generating analysis for AAPL") */
+  subtitle?: string;
 };
 
 export default function ExecutionProgressCard({
@@ -49,12 +51,14 @@ export default function ExecutionProgressCard({
   steps,
   allCompleted = false,
   showLoadingDots = true,
+  subtitle,
 }: Props) {
+  const subheaderText = subtitle ?? `Executing a Risk-Managed Scalp Trade on ${symbol}`;
   return (
     <div style={styles.card}>
       <div style={styles.header}>Tradsy</div>
       <div style={styles.subheader}>
-        Executing a Risk-Managed Scalp Trade on {symbol}
+        {subheaderText}
         <span style={{ fontSize: 18 }} title={symbol}>🍎</span>
       </div>
       <div style={styles.timeline}>

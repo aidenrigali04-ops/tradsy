@@ -6,6 +6,12 @@ import ExecutionProgressCard from "./ExecutionProgressCard";
 
 const SESSION_KEY = "tradsy_chat_session_id";
 
+const GENERATING_STEP_LABELS: { id: string; label: string; status: "pending" }[] = [
+  { id: "analyze", label: "Analyzing market data", status: "pending" },
+  { id: "chart", label: "Chart analysis completed", status: "pending" },
+  { id: "tradingview", label: "Applying execution on Trading View", status: "pending" },
+];
+
 const styles: Record<string, React.CSSProperties> = {
   container: {
     display: "flex",
@@ -219,6 +225,8 @@ export default function ChatPanel({
     steps: { id: string; label: string; status: string }[];
     allCompleted: boolean;
   } | null>(null);
+  const [generatingSteps, setGeneratingSteps] = useState<{ id: string; label: string; status: string }[] | null>(null);
+  const generatingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const executionPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -236,12 +244,57 @@ export default function ChatPanel({
       setStreamingContent("");
       setRiskCard(null);
       setExecutionState(null);
+      setGeneratingSteps(null);
+      generatingTimersRef.current.forEach(clearTimeout);
+      generatingTimersRef.current = [];
       if (executionPollRef.current) {
         clearInterval(executionPollRef.current);
         executionPollRef.current = null;
       }
     }
   }, [resetKey]);
+
+  const generatingClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (loading) {
+      if (generatingClearRef.current) {
+        clearTimeout(generatingClearRef.current);
+        generatingClearRef.current = null;
+      }
+      setGeneratingSteps(GENERATING_STEP_LABELS.map((s) => ({ ...s })));
+      const t1 = setTimeout(() => {
+        setGeneratingSteps((prev) =>
+          prev ? prev.map((s, i) => (i === 0 ? { ...s, status: "completed" } : s)) : prev
+        );
+      }, 900);
+      const t2 = setTimeout(() => {
+        setGeneratingSteps((prev) =>
+          prev ? prev.map((s, i) => (i === 1 ? { ...s, status: "completed" } : s)) : prev
+        );
+      }, 2400);
+      generatingTimersRef.current = [t1, t2];
+      return () => {
+        generatingTimersRef.current.forEach(clearTimeout);
+        generatingTimersRef.current = [];
+      };
+    } else {
+      setGeneratingSteps((prev) => {
+        if (!prev) return null;
+        return prev.map((s, i) => (i === 2 ? { ...s, status: "completed" as const } : s));
+      });
+      generatingClearRef.current = setTimeout(() => {
+        setGeneratingSteps(null);
+        generatingClearRef.current = null;
+      }, 500);
+      return () => {
+        if (generatingClearRef.current) {
+          clearTimeout(generatingClearRef.current);
+          generatingClearRef.current = null;
+        }
+      };
+    }
+  }, [loading]);
 
   const handleRiskCheck = () => {
     const sym = symbol ?? "AAPL";
@@ -291,7 +344,7 @@ export default function ChatPanel({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingContent, riskCard, executionState]);
+  }, [messages, streamingContent, riskCard, executionState, generatingSteps]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || loading) return;
@@ -460,18 +513,15 @@ export default function ChatPanel({
             />
           </div>
         )}
-        {loading && !streamingContent && (
+        {generatingSteps && (
           <div style={styles.messageRow}>
-            <div>
-              <div style={styles.label}>Tradsy</div>
-              <div style={styles.loadingBubble}>
-                <div style={styles.loadingDots} aria-hidden="true">
-                  <span className="tradsy-typing-dot" />
-                  <span className="tradsy-typing-dot" />
-                  <span className="tradsy-typing-dot" />
-                </div>
-              </div>
-            </div>
+            <ExecutionProgressCard
+              symbol={symbol ?? "AAPL"}
+              steps={generatingSteps}
+              allCompleted={generatingSteps.every((s) => s.status === "completed")}
+              showLoadingDots={!generatingSteps.every((s) => s.status === "completed")}
+              subtitle={`Generating analysis for ${symbol ?? "AAPL"}`}
+            />
           </div>
         )}
         {error && <div style={styles.error}>{error}</div>}
