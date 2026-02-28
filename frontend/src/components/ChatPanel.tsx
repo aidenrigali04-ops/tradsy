@@ -230,6 +230,8 @@ export default function ChatPanel({
   const executionPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  /** Only show full 3-step card for trading analysis (Deep Analysis / Strategy); regular chat uses 3-dot only */
+  const loadingKindRef = useRef<"chat" | "analysis">("chat");
 
   useEffect(() => {
     if (sessionId) sessionStorage.setItem(SESSION_KEY, sessionId);
@@ -262,18 +264,22 @@ export default function ChatPanel({
         clearTimeout(generatingClearRef.current);
         generatingClearRef.current = null;
       }
-      setGeneratingSteps(GENERATING_STEP_LABELS.map((s) => ({ ...s })));
-      const t1 = setTimeout(() => {
-        setGeneratingSteps((prev) =>
-          prev ? prev.map((s, i) => (i === 0 ? { ...s, status: "completed" } : s)) : prev
-        );
-      }, 900);
-      const t2 = setTimeout(() => {
-        setGeneratingSteps((prev) =>
-          prev ? prev.map((s, i) => (i === 1 ? { ...s, status: "completed" } : s)) : prev
-        );
-      }, 2400);
-      generatingTimersRef.current = [t1, t2];
+      if (loadingKindRef.current === "analysis") {
+        setGeneratingSteps(GENERATING_STEP_LABELS.map((s) => ({ ...s })));
+        const t1 = setTimeout(() => {
+          setGeneratingSteps((prev) =>
+            prev ? prev.map((s, i) => (i === 0 ? { ...s, status: "completed" } : s)) : prev
+          );
+        }, 900);
+        const t2 = setTimeout(() => {
+          setGeneratingSteps((prev) =>
+            prev ? prev.map((s, i) => (i === 1 ? { ...s, status: "completed" } : s)) : prev
+          );
+        }, 2400);
+        generatingTimersRef.current = [t1, t2];
+      } else {
+        setGeneratingSteps(null);
+      }
       return () => {
         generatingTimersRef.current.forEach(clearTimeout);
         generatingTimersRef.current = [];
@@ -351,6 +357,7 @@ export default function ChatPanel({
     setInput("");
     setError(null);
     setMessages((prev) => [...prev, { role: "user", content: text }]);
+    loadingKindRef.current = "chat";
     setLoading(true);
     setStreamingContent("");
 
@@ -383,6 +390,7 @@ export default function ChatPanel({
     const sym = symbol ?? "AAPL";
     setError(null);
     setMessages((prev) => [...prev, { role: "user", content: `Deep analysis for ${sym}` }]);
+    loadingKindRef.current = "analysis";
     setLoading(true);
     try {
       const res = await chat.deepAnalysis({ symbol: sym, timeframe: "1D" });
@@ -398,6 +406,7 @@ export default function ChatPanel({
 
   const handleStrategy = () => {
     const text = "Using my strategy, analyze the current setup and suggest a good entry.";
+    loadingKindRef.current = "analysis";
     sendMessage(text);
   };
 
@@ -522,6 +531,20 @@ export default function ChatPanel({
               showLoadingDots={!generatingSteps.every((s) => s.status === "completed")}
               subtitle={`Generating analysis for ${symbol ?? "AAPL"}`}
             />
+          </div>
+        )}
+        {loading && !streamingContent && !generatingSteps && (
+          <div style={styles.messageRow}>
+            <div>
+              <div style={styles.label}>Tradsy</div>
+              <div style={styles.loadingBubble}>
+                <div style={styles.loadingDots} aria-hidden="true">
+                  <span className="tradsy-typing-dot" />
+                  <span className="tradsy-typing-dot" />
+                  <span className="tradsy-typing-dot" />
+                </div>
+              </div>
+            </div>
           </div>
         )}
         {error && <div style={styles.error}>{error}</div>}
