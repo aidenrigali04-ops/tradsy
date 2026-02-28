@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useChat } from "../context/ChatContext";
 import type { ArchivedChat } from "../types/chatHistory";
+import TradsyLogo from "./TradsyLogo";
 
 const styles: Record<string, React.CSSProperties> = {
   layout: { display: "flex", flexDirection: "row", height: "100vh", overflow: "hidden" },
@@ -95,7 +96,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <div style={styles.layout}>
       <aside style={styles.sidebar}>
         <Link to="/app" style={styles.logo}>
-          <span className="tradsy-logo-prism" style={{ fontSize: 24 }} aria-hidden>◆</span> Tradsy
+          <TradsyLogo className="tradsy-logo-prism" size={24} /> Tradsy
         </Link>
         <button type="button" style={styles.newChatBtn} onClick={handleNewChat} aria-label="New chat">
           New chat

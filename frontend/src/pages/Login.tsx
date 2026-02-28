@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import TradsyLogo from "../components/TradsyLogo";
 
 const styles: Record<string, React.CSSProperties> = {
   page: { display: "flex", minHeight: "100vh" },
@@ -35,7 +36,7 @@ export default function Login() {
     <div style={styles.page}>
       <div style={styles.left}>
         <div style={styles.logo}>
-          <span style={{ fontSize: 28 }}>◆</span> Tradsy
+          <TradsyLogo size={28} /> Tradsy
         </div>
         <h1 style={styles.title}>Log in</h1>
         <form onSubmit={handleSubmit}>

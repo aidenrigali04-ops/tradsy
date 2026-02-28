@@ -5,6 +5,7 @@ import { useChat } from "../context/ChatContext";
 import type { ArchivedChat } from "../types/chatHistory";
 import RiskWarningCard from "./RiskWarningCard";
 import ExecutionProgressCard from "./ExecutionProgressCard";
+import TradsyLogo from "./TradsyLogo";
 
 const SESSION_KEY = "tradsy_chat_session_id";
 
@@ -613,7 +614,7 @@ export default function ChatPanel({
             title="Send"
             aria-label="Send"
           >
-            ◆
+            <TradsyLogo size={20} />
           </button>
           <button type="button" style={styles.addBtn} title="Add" aria-label="Add">
             +

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import TradsyLogo from "../components/TradsyLogo";
 
 const styles: Record<string, React.CSSProperties> = {
   page: { display: "flex", minHeight: "100vh" },
@@ -86,7 +87,7 @@ export default function CreateAccount() {
     <div style={styles.page}>
       <div style={styles.left}>
         <div style={styles.logo}>
-          <span style={{ fontSize: 28 }}>◆</span> Tradsy
+          <TradsyLogo size={28} /> Tradsy
         </div>
         <h1 style={styles.title}>Create a free account</h1>
         <div style={styles.socialRow}>
@@ -145,7 +146,7 @@ export default function CreateAccount() {
             placeholder="Using my strategy, find a good entry"
             readOnly
           />
-          <span style={{ fontSize: 20 }}>◆</span>
+          <TradsyLogo size={20} />
         </div>
         <p style={styles.brokers}>Trusted by your favorite brokers.</p>
         <div style={styles.brokerLogos}>
