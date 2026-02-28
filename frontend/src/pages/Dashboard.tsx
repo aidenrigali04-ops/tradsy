@@ -64,6 +64,7 @@ export default function Dashboard() {
             key={newChatKey}
             resetKey={newChatKey}
             symbol="AAPL"
+            symbolLabel="AAPL"
             placeholder="Using my strategy, find a good entry..."
           />
         </div>

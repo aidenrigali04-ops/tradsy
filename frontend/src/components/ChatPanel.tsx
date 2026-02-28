@@ -8,7 +8,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     height: "100%",
-    minHeight: 320,
+    minHeight: 360,
     background: "#fff",
     borderRadius: 8,
     border: "1px solid #eee",
@@ -34,47 +34,118 @@ const styles: Record<string, React.CSSProperties> = {
   bubbleAssistant: { background: "#f0f0f0", color: "#111" },
   bubbleUser: { background: "#111", color: "#fff" },
   label: { fontSize: 11, color: "#888", marginBottom: 4, fontWeight: 600 },
-  inputRow: {
-    padding: 12,
+  inputSection: {
+    padding: 16,
     borderTop: "1px solid #eee",
-    display: "flex",
-    gap: 8,
-    alignItems: "flex-end",
     background: "#fafafa",
+  },
+  inputWrapper: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+    background: "#fff",
+    border: "1px solid #ddd",
+    borderRadius: 12,
+    paddingLeft: 12,
+    paddingRight: 8,
+    minHeight: 52,
+  },
+  symbolIcon: {
+    width: 28,
+    height: 28,
+    marginRight: 10,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 20,
   },
   input: {
     flex: 1,
-    padding: "12px 16px",
-    border: "1px solid #ddd",
-    borderRadius: 8,
+    border: "none",
+    outline: "none",
+    padding: "12px 0",
     fontSize: 15,
     resize: "none",
-    minHeight: 44,
-    maxHeight: 120,
+    minHeight: 28,
+    maxHeight: 100,
+    background: "transparent",
   },
   sendBtn: {
-    padding: "12px 20px",
+    width: 40,
+    height: 40,
+    padding: 0,
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 20,
+    color: "#111",
+  },
+  addBtn: {
+    position: "absolute" as const,
+    top: -8,
+    right: 48,
+    width: 28,
+    height: 28,
+    padding: 0,
     background: "#111",
     color: "#fff",
     border: "none",
-    borderRadius: 8,
-    fontWeight: 600,
+    borderRadius: 4,
+    cursor: "pointer",
+    fontSize: 18,
+    lineHeight: 1,
+  },
+  pillsRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 12,
+    flexWrap: "wrap",
+  },
+  pill: {
+    padding: "8px 16px",
+    background: "#111",
+    color: "#fff",
+    border: "none",
+    borderRadius: 20,
+    fontSize: 13,
+    fontWeight: 500,
     cursor: "pointer",
   },
-  sendBtnDisabled: { opacity: 0.6, cursor: "not-allowed" },
+  pillDisabled: { opacity: 0.6, cursor: "not-allowed" },
+  iconBtn: {
+    width: 32,
+    height: 32,
+    padding: 0,
+    background: "#333",
+    color: "#fff",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontSize: 14,
+    marginLeft: 4,
+  },
   loading: { padding: 8, fontSize: 14, color: "#666" },
-  error: { padding: 8, fontSize: 14, color: "#c00", background: "#fee" },
+  error: { padding: 8, fontSize: 14, color: "#c00", background: "#fee", borderRadius: 8, marginTop: 8 },
   empty: { padding: 24, textAlign: "center", color: "#888", fontSize: 15 },
 };
 
 type Props = {
   symbol?: string | null;
+  symbolLabel?: string;
   placeholder?: string;
-  /** When this key changes, conversation is reset (e.g. from "New chat"). */
   resetKey?: number;
 };
 
-export default function ChatPanel({ symbol = null, placeholder = "Using my strategy, find a good entry...", resetKey = 0 }: Props) {
+export default function ChatPanel({
+  symbol = null,
+  symbolLabel = "AAPL",
+  placeholder = "Using my strategy, find a good entry...",
+  resetKey = 0,
+}: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(() => sessionStorage.getItem(SESSION_KEY));
   const [input, setInput] = useState("");
@@ -102,9 +173,8 @@ export default function ChatPanel({ symbol = null, placeholder = "Using my strat
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingContent]);
 
-  const handleSend = async () => {
-    const text = input.trim();
-    if (!text || loading) return;
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || loading) return;
     setInput("");
     setError(null);
     setMessages((prev) => [...prev, { role: "user", content: text }]);
@@ -152,6 +222,30 @@ export default function ChatPanel({ symbol = null, placeholder = "Using my strat
       setStreamingContent("");
       inputRef.current?.focus();
     }
+  };
+
+  const handleSend = () => sendMessage(input.trim());
+
+  const handleDeepAnalysis = async () => {
+    const sym = symbol ?? "AAPL";
+    setError(null);
+    setMessages((prev) => [...prev, { role: "user", content: `Deep analysis for ${sym}` }]);
+    setLoading(true);
+    try {
+      const res = await chat.deepAnalysis({ symbol: sym, timeframe: "1D" });
+      setMessages((prev) => [...prev, { role: "assistant", content: res.analysis }]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Deep analysis failed.");
+      setMessages((prev) => prev.slice(0, -1));
+    } finally {
+      setLoading(false);
+      inputRef.current?.focus();
+    }
+  };
+
+  const handleStrategy = () => {
+    const text = "Using my strategy, analyze the current setup and suggest a good entry.";
+    sendMessage(text);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -202,25 +296,59 @@ export default function ChatPanel({ symbol = null, placeholder = "Using my strat
         {error && <div style={styles.error}>{error}</div>}
         <div ref={messagesEndRef} />
       </div>
-      <div style={styles.inputRow}>
-        <textarea
-          ref={inputRef}
-          style={styles.input}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          rows={1}
-          disabled={loading}
-        />
-        <button
-          type="button"
-          style={{ ...styles.sendBtn, ...(loading ? styles.sendBtnDisabled : {}) }}
-          onClick={handleSend}
-          disabled={loading}
-        >
-          Send
-        </button>
+      <div style={styles.inputSection}>
+        <div style={styles.inputWrapper}>
+          <div style={styles.symbolIcon} title={symbolLabel}>
+            🍎
+          </div>
+          <textarea
+            ref={inputRef}
+            style={styles.input}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            rows={1}
+            disabled={loading}
+          />
+          <button
+            type="button"
+            style={styles.sendBtn}
+            onClick={handleSend}
+            disabled={loading}
+            title="Send"
+            aria-label="Send"
+          >
+            ◆
+          </button>
+          <button type="button" style={styles.addBtn} title="Add" aria-label="Add">
+            +
+          </button>
+        </div>
+        <div style={styles.pillsRow}>
+          <button
+            type="button"
+            style={{ ...styles.pill, ...(loading ? styles.pillDisabled : {}) }}
+            onClick={handleDeepAnalysis}
+            disabled={loading}
+          >
+            Deep Analysis
+          </button>
+          <button
+            type="button"
+            style={{ ...styles.pill, ...(loading ? styles.pillDisabled : {}) }}
+            onClick={handleStrategy}
+            disabled={loading}
+          >
+            Strategy
+          </button>
+          <button type="button" style={styles.iconBtn} title="TradingView">
+            TV
+          </button>
+          <button type="button" style={styles.iconBtn} title="More">
+            +
+          </button>
+        </div>
       </div>
     </div>
   );

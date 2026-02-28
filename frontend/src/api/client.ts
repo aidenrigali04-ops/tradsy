@@ -169,6 +169,13 @@ export const chat = {
       }
     ),
 
+  /** Deep analysis for a symbol; returns structured analysis. */
+  deepAnalysis: (params: { symbol: string; timeframe?: string }) =>
+    api<{ symbol: string; timeframe: string; analysis: string }>("/chat/deep-analysis", {
+      method: "POST",
+      body: JSON.stringify({ symbol: params.symbol, timeframe: params.timeframe ?? "1D" }),
+    }),
+
   /** Stream tokens via SSE; yields { type, text?, session_id? }. */
   async *streamMessages(params: {
     message: string;
